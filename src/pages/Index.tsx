@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
 
 type ChatType = 'direct' | 'group';
@@ -108,6 +108,17 @@ const navItems = [
   { id: 'profile', icon: 'User', label: 'Кабинет' },
 ];
 
+const AVATAR_COLORS = [
+  'bg-[#d9796a]', 'bg-[#7986cb]', 'bg-[#4db6ac]',
+  'bg-[#f06292]', 'bg-[#aed581]', 'bg-[#ffa726]',
+];
+
+const avatarColor = (name: string) =>
+  AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+
+const initials = (name: string) =>
+  name.split(' ').map((w) => w[0]).slice(0, 2).join('');
+
 const Index = () => {
   const [activeNav, setActiveNav] = useState('chats');
   const [chatList, setChatList] = useState<Chat[]>(chats);
@@ -115,8 +126,13 @@ const Index = () => {
   const [filter, setFilter] = useState<'all' | 'direct' | 'group'>('all');
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeChat = chatList.find((c) => c.id === activeChatId) || chatList[0];
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [activeChat.messages]);
 
   const nowTime = () =>
     new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
@@ -128,15 +144,7 @@ const Index = () => {
     setChatList((prev) =>
       prev.map((c) =>
         c.id === activeChatId
-          ? {
-              ...c,
-              last: text,
-              time,
-              messages: [
-                ...c.messages,
-                { id: Date.now(), fromMe: true, author: 'Вы', text, time },
-              ],
-            }
+          ? { ...c, last: text, time, messages: [...c.messages, { id: Date.now(), fromMe: true, author: 'Вы', text, time }] }
           : c,
       ),
     );
@@ -148,74 +156,71 @@ const Index = () => {
     .filter((c) => (filter === 'all' ? true : c.type === filter))
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
 
-  const initials = (name: string) =>
-    name.split(' ').map((w) => w[0]).slice(0, 2).join('');
-
   return (
-    <div className="flex h-screen bg-background text-foreground font-sans overflow-hidden">
-      {/* Левая навигация */}
-      <aside className="w-[68px] bg-primary flex flex-col items-center py-6 gap-2 shrink-0">
-        <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center mb-6">
-          <Icon name="Lock" size={20} className="text-white" />
+    <div className="flex h-screen text-foreground font-sans overflow-hidden" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+
+      {/* Боковая иконочная навигация */}
+      <aside className="w-[60px] bg-[#202c33] flex flex-col items-center py-4 gap-1 shrink-0">
+        <div className="w-9 h-9 rounded-full bg-[#00a884] flex items-center justify-center mb-5">
+          <Icon name="MessageCircle" size={20} className="text-white" />
         </div>
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveNav(item.id)}
-            className={`w-11 h-11 rounded-lg flex items-center justify-center transition-colors ${
-              activeNav === item.id
-                ? 'bg-white/15 text-white'
-                : 'text-white/50 hover:text-white hover:bg-white/10'
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+              activeNav === item.id ? 'text-[#00a884]' : 'text-[#8696a0] hover:text-[#d1d7db]'
             }`}
             title={item.label}
           >
-            <Icon name={item.icon} size={20} />
+            <Icon name={item.icon} size={22} />
           </button>
         ))}
         <div className="mt-auto">
-          <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white text-sm font-semibold">
+          <div className="w-9 h-9 rounded-full bg-[#00a884] flex items-center justify-center text-white text-xs font-bold">
             ВЫ
           </div>
         </div>
       </aside>
 
       {/* Список чатов */}
-      <section className="w-[340px] border-r border-border flex flex-col bg-card shrink-0">
-        <header className="px-5 pt-6 pb-4 border-b border-border">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-lg font-semibold tracking-tight">
+      <section className="w-[360px] flex flex-col shrink-0" style={{ background: '#111b21' }}>
+        {/* Шапка */}
+        <header className="px-4 pt-4 pb-2" style={{ background: '#202c33' }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[#e9edef] font-semibold text-base">
               {navItems.find((n) => n.id === activeNav)?.label}
-            </h1>
-            <button className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-              <Icon name="Plus" size={18} />
-            </button>
+            </span>
+            <div className="flex gap-1">
+              <button className="w-8 h-8 rounded-full flex items-center justify-center text-[#8696a0] hover:text-[#d1d7db] hover:bg-white/10 transition-colors">
+                <Icon name="Plus" size={20} />
+              </button>
+              <button className="w-8 h-8 rounded-full flex items-center justify-center text-[#8696a0] hover:text-[#d1d7db] hover:bg-white/10 transition-colors">
+                <Icon name="MoreVertical" size={20} />
+              </button>
+            </div>
           </div>
-          <div className="relative">
-            <Icon
-              name="Search"
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
+          {/* Поиск */}
+          <div className="relative mb-3">
+            <Icon name="Search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8696a0]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск по сообщениям и контактам"
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-secondary border border-transparent focus:border-accent focus:bg-card outline-none transition-colors"
+              placeholder="Поиск или новый чат"
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg text-[#d1d7db] placeholder-[#8696a0] outline-none"
+              style={{ background: '#2a3942' }}
             />
           </div>
-          <div className="flex gap-1 mt-4">
-            {([
-              ['all', 'Все'],
-              ['direct', 'Личные'],
-              ['group', 'Группы'],
-            ] as const).map(([key, label]) => (
+          {/* Фильтры */}
+          <div className="flex gap-1">
+            {([['all', 'Все'], ['direct', 'Личные'], ['group', 'Группы']] as const).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setFilter(key)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
                   filter === key
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-secondary'
+                    ? 'bg-[#00a884] text-white'
+                    : 'text-[#8696a0] hover:bg-white/10'
                 }`}
               >
                 {label}
@@ -224,38 +229,33 @@ const Index = () => {
           </div>
         </header>
 
+        {/* Чаты */}
         <div className="flex-1 overflow-y-auto">
           {visibleChats.map((chat) => (
             <button
               key={chat.id}
               onClick={() => setActiveChatId(chat.id)}
-              className={`w-full flex items-center gap-3 px-5 py-3.5 text-left border-b border-border/60 transition-colors ${
-                activeChat.id === chat.id ? 'bg-secondary' : 'hover:bg-secondary/50'
+              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-white/5 ${
+                activeChatId === chat.id ? 'bg-[#2a3942]' : 'hover:bg-[#202c33]'
               }`}
             >
               <div className="relative shrink-0">
-                <div
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-semibold ${
-                    chat.type === 'group'
-                      ? 'bg-accent/10 text-accent'
-                      : 'bg-primary/10 text-primary'
-                  }`}
-                >
-                  {chat.type === 'group' ? <Icon name="Users" size={18} /> : initials(chat.name)}
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-semibold ${avatarColor(chat.name)}`}>
+                  {chat.type === 'group' ? <Icon name="Users" size={20} /> : initials(chat.name)}
                 </div>
                 {chat.online && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-card" />
+                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#00a884] border-2 border-[#111b21]" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-sm truncate">{chat.name}</span>
-                  <span className="text-[11px] text-muted-foreground shrink-0">{chat.time}</span>
+                  <span className="text-[#e9edef] font-medium text-sm truncate">{chat.name}</span>
+                  <span className={`text-[11px] shrink-0 ${chat.unread > 0 ? 'text-[#00a884]' : 'text-[#8696a0]'}`}>{chat.time}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2 mt-0.5">
-                  <span className="text-xs text-muted-foreground truncate">{chat.last}</span>
+                  <span className="text-xs text-[#8696a0] truncate">{chat.last}</span>
                   {chat.unread > 0 && (
-                    <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-white text-[10px] font-semibold flex items-center justify-center">
+                    <span className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-[#00a884] text-white text-[11px] font-semibold flex items-center justify-center">
                       {chat.unread}
                     </span>
                   )}
@@ -264,108 +264,103 @@ const Index = () => {
             </button>
           ))}
           {visibleChats.length === 0 && (
-            <div className="p-8 text-center text-sm text-muted-foreground">Ничего не найдено</div>
+            <div className="p-8 text-center text-sm text-[#8696a0]">Ничего не найдено</div>
           )}
         </div>
       </section>
 
-      {/* Окно переписки */}
-      <main className="flex-1 flex flex-col bg-background min-w-0">
-        <header className="h-[73px] px-6 flex items-center justify-between border-b border-border bg-card shrink-0">
+      {/* Область переписки */}
+      <main className="flex-1 flex flex-col min-w-0">
+        {/* Шапка чата */}
+        <header className="h-[60px] px-4 flex items-center justify-between shrink-0" style={{ background: '#202c33' }}>
           <div className="flex items-center gap-3">
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-semibold ${
-                activeChat.type === 'group' ? 'bg-accent/10 text-accent' : 'bg-primary/10 text-primary'
-              }`}
-            >
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0 ${avatarColor(activeChat.name)}`}>
               {activeChat.type === 'group' ? <Icon name="Users" size={18} /> : initials(activeChat.name)}
             </div>
             <div>
-              <div className="font-semibold text-sm">{activeChat.name}</div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-[#e9edef] font-medium text-sm">{activeChat.name}</div>
+              <div className="text-[11px] text-[#8696a0]">
                 {activeChat.type === 'group'
                   ? `${activeChat.members} участников`
-                  : activeChat.online
-                  ? 'В сети'
-                  : activeChat.role}
+                  : activeChat.online ? 'В сети' : activeChat.role}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-1">
-            {['Phone', 'Video', 'Search', 'MoreVertical'].map((ic) => (
-              <button
-                key={ic}
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-              >
-                <Icon name={ic} size={18} />
+            {['Search', 'Phone', 'MoreVertical'].map((ic) => (
+              <button key={ic} className="w-9 h-9 rounded-full flex items-center justify-center text-[#8696a0] hover:text-[#d1d7db] hover:bg-white/10 transition-colors">
+                <Icon name={ic} size={20} />
               </button>
             ))}
           </div>
         </header>
 
-        {/* Баннер шифрования */}
-        <div className="px-6 py-2 bg-accent/5 border-b border-border flex items-center justify-center gap-2">
-          <Icon name="ShieldCheck" size={14} className="text-accent" />
-          <span className="text-xs text-muted-foreground">
-            Сообщения защищены сквозным шифрованием
-          </span>
-        </div>
+        {/* Сообщения — паттерн фона как у WhatsApp */}
+        <div
+          className="flex-1 overflow-y-auto px-6 py-4 space-y-1"
+          style={{
+            background: '#0b141a',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23182229' fill-opacity='0.8'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        >
+          {/* Метка шифрования */}
+          <div className="flex justify-center mb-4">
+            <div className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] text-[#8696a0]" style={{ background: '#182229' }}>
+              <Icon name="Lock" size={12} className="text-[#8696a0]" />
+              Сообщения защищены сквозным шифрованием
+            </div>
+          </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
           {activeChat.messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex flex-col animate-fade-in ${msg.fromMe ? 'items-end' : 'items-start'}`}
-            >
-              {activeChat.type === 'group' && !msg.fromMe && (
-                <span className="text-[11px] text-accent font-medium mb-1 ml-1">{msg.author}</span>
-              )}
+            <div key={msg.id} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'} animate-fade-in`}>
               <div
-                className={`max-w-[60%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                  msg.fromMe
-                    ? 'bg-primary text-primary-foreground rounded-br-md'
-                    : 'bg-card border border-border rounded-bl-md'
-                }`}
+                className={`relative max-w-[65%] px-3 pt-2 pb-1.5 rounded-lg text-sm leading-relaxed shadow-sm`}
+                style={{
+                  background: msg.fromMe ? '#005c4b' : '#202c33',
+                  borderRadius: msg.fromMe ? '8px 8px 2px 8px' : '8px 8px 8px 2px',
+                }}
               >
-                {msg.text}
-              </div>
-              <div className="flex items-center gap-1 mt-1 px-1">
-                <span className="text-[10px] text-muted-foreground">{msg.time}</span>
-                {msg.fromMe && <Icon name="CheckCheck" size={12} className="text-accent" />}
+                {activeChat.type === 'group' && !msg.fromMe && (
+                  <div className="text-[12px] font-semibold mb-1" style={{ color: '#00a884' }}>{msg.author}</div>
+                )}
+                <span className="text-[#e9edef]">{msg.text}</span>
+                <div className="flex items-center justify-end gap-1 mt-1">
+                  <span className="text-[10px] text-[#8696a0]">{msg.time}</span>
+                  {msg.fromMe && <Icon name="CheckCheck" size={14} className="text-[#53bdeb]" />}
+                </div>
               </div>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Поле ввода */}
-        <footer className="px-6 py-4 border-t border-border bg-card shrink-0">
-          <div className="flex items-center gap-2 bg-secondary rounded-xl px-3 py-2">
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              <Icon name="Paperclip" size={20} />
-            </button>
+        <footer className="px-4 py-3 flex items-center gap-3 shrink-0" style={{ background: '#202c33' }}>
+          <button className="text-[#8696a0] hover:text-[#d1d7db] transition-colors">
+            <Icon name="Smile" size={24} />
+          </button>
+          <button className="text-[#8696a0] hover:text-[#d1d7db] transition-colors">
+            <Icon name="Paperclip" size={24} />
+          </button>
+          <div className="flex-1 relative">
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
               }}
-              placeholder="Введите сообщение…"
-              className="flex-1 bg-transparent outline-none text-sm py-1"
+              placeholder="Введите сообщение"
+              className="w-full px-4 py-2.5 rounded-lg text-sm text-[#e9edef] placeholder-[#8696a0] outline-none"
+              style={{ background: '#2a3942' }}
             />
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              <Icon name="Smile" size={20} />
-            </button>
-            <button
-              onClick={sendMessage}
-              disabled={!draft.trim()}
-              className="w-9 h-9 rounded-lg bg-accent text-white flex items-center justify-center hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Icon name="Send" size={18} />
-            </button>
           </div>
+          <button
+            onClick={sendMessage}
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-colors shrink-0"
+            style={{ background: draft.trim() ? '#00a884' : '#2a3942' }}
+          >
+            <Icon name={draft.trim() ? 'Send' : 'Mic'} size={20} className="text-white" />
+          </button>
         </footer>
       </main>
     </div>
