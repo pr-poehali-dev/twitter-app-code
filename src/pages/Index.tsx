@@ -1,368 +1,339 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Icon from '@/components/ui/icon';
 
-type ChatType = 'direct' | 'group';
+const STARS = Array.from({ length: 120 }, (_, i) => ({
+  id: i,
+  x: Math.random() * 100,
+  y: Math.random() * 100,
+  size: Math.random() * 2.5 + 0.5,
+  delay: Math.random() * 4,
+  duration: Math.random() * 3 + 2,
+}));
 
-interface Message {
-  id: number;
-  fromMe: boolean;
-  author: string;
-  text: string;
-  time: string;
-}
-
-interface Chat {
-  id: number;
-  name: string;
-  type: ChatType;
-  role: string;
-  last: string;
-  time: string;
-  unread: number;
-  online: boolean;
-  archived?: boolean;
-  members?: number;
-  messages: Message[];
-}
-
-const chats: Chat[] = [
-  {
-    id: 1,
-    name: 'Анна Соколова',
-    type: 'direct',
-    role: 'Финансовый директор',
-    last: 'Отправила отчёт за квартал, проверьте',
-    time: '14:32',
-    unread: 2,
-    online: true,
-    messages: [
-      { id: 1, fromMe: false, author: 'Анна Соколова', text: 'Добрый день! Подготовила финансовый отчёт за квартал.', time: '14:28' },
-      { id: 2, fromMe: false, author: 'Анна Соколова', text: 'Отправила отчёт за квартал, проверьте, пожалуйста.', time: '14:32' },
-      { id: 3, fromMe: true, author: 'Вы', text: 'Спасибо, ознакомлюсь до конца дня.', time: '14:35' },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Совет директоров',
-    type: 'group',
-    role: 'Стратегия и развитие',
-    last: 'Дмитрий: Совещание переносится на вторник',
-    time: '13:10',
-    unread: 5,
-    online: false,
-    members: 8,
-    messages: [
-      { id: 1, fromMe: false, author: 'Дмитрий Орлов', text: 'Коллеги, совещание переносится на вторник 10:00.', time: '13:10' },
-      { id: 2, fromMe: false, author: 'Елена Власова', text: 'Принято, скорректирую расписание.', time: '13:12' },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Игорь Петров',
-    type: 'direct',
-    role: 'Руководитель IT',
-    last: 'Доступы выданы, проверьте систему',
-    time: '11:45',
-    unread: 0,
-    online: true,
-    messages: [
-      { id: 1, fromMe: false, author: 'Игорь Петров', text: 'Доступы выданы, проверьте систему.', time: '11:45' },
-      { id: 2, fromMe: true, author: 'Вы', text: 'Отлично, всё работает. Благодарю.', time: '11:50' },
-    ],
-  },
-  {
-    id: 4,
-    name: 'Отдел продаж',
-    type: 'group',
-    role: 'Региональные менеджеры',
-    last: 'Мария: План выполнен на 112%',
-    time: 'Вчера',
-    unread: 0,
-    online: false,
-    members: 14,
-    messages: [
-      { id: 1, fromMe: false, author: 'Мария Кузнецова', text: 'План выполнен на 112%, отличная работа команды!', time: 'Вчера' },
-    ],
-  },
-  {
-    id: 5,
-    name: 'Сергей Новиков',
-    type: 'direct',
-    role: 'Юридический отдел',
-    last: 'Договор согласован сторонами',
-    time: 'Пн',
-    unread: 0,
-    online: false,
-    archived: true,
-    messages: [
-      { id: 1, fromMe: false, author: 'Сергей Новиков', text: 'Договор согласован сторонами, архивирую.', time: 'Пн' },
-    ],
-  },
+const crew = [
+  { name: 'Мистер Самир', rank: 'Командир станции', emoji: '👨‍🚀', color: '#a78bfa', bio: 'Легендарный командир, покоривший 14 галактических секторов.' },
+  { name: 'Капитан Аврора', rank: 'Пилот-навигатор', emoji: '👩‍🚀', color: '#34d399', bio: 'Мастер гиперпрыжков и звёздных маршрутов.' },
+  { name: 'Инженер Зорг', rank: 'Главный механик', emoji: '🤖', color: '#f59e0b', bio: 'Чинит реакторы прямо в открытом космосе.' },
+  { name: 'Доктор Нова', rank: 'Медик и учёный', emoji: '🧑‍🔬', color: '#60a5fa', bio: 'Исследует инопланетные формы жизни.' },
 ];
 
-const navItems = [
-  { id: 'chats', icon: 'MessageSquare', label: 'Сообщения' },
-  { id: 'contacts', icon: 'Users', label: 'Справочник' },
-  { id: 'archive', icon: 'Archive', label: 'Архив' },
-  { id: 'security', icon: 'ShieldCheck', label: 'Безопасность' },
-  { id: 'profile', icon: 'User', label: 'Кабинет' },
+const games = [
+  { title: 'Захват астероидов', genre: 'Аркада', rating: 4.9, players: '128K', icon: '☄️', color: '#f59e0b', desc: 'Уничтожай метеориты и защищай станцию от вторжения.' },
+  { title: 'Космическая дуэль', genre: 'PvP', rating: 4.7, players: '89K', icon: '⚡', color: '#a78bfa', desc: 'Сражения один на один в невесомости.' },
+  { title: 'Миссия: Туманность', genre: 'Стратегия', rating: 4.8, players: '204K', icon: '🌌', color: '#34d399', desc: 'Строй галактическую империю из ресурсов туманности.' },
+  { title: 'Побег с орбиты', genre: 'Выживание', rating: 4.6, players: '67K', icon: '🚀', color: '#60a5fa', desc: 'Спасай экипаж с разрушающейся орбитальной платформы.' },
 ];
 
-const AVATAR_COLORS = [
-  'bg-[#d9796a]', 'bg-[#7986cb]', 'bg-[#4db6ac]',
-  'bg-[#f06292]', 'bg-[#aed581]', 'bg-[#ffa726]',
+const reviews = [
+  { name: 'Алексей К.', avatar: '🧑', stars: 5, text: 'Лучший космический контент на просторах интернета! Самир — настоящий командир!', date: '12 июня' },
+  { name: 'Мария В.', avatar: '👩', stars: 5, text: 'Смотрю каждый день. Атмосфера космоса передана идеально, как будто сам там.', date: '8 июня' },
+  { name: 'Дмитрий Л.', avatar: '👨', stars: 5, text: 'Экипаж просто огонь! Зорг — мой любимый персонаж. Жду каждую новую серию.', date: '5 июня' },
+  { name: 'Саша П.', avatar: '🧒', stars: 4, text: 'Очень круто! Особенно понравилась миссия с туманностью. Больше таких игр!', date: '1 июня' },
+  { name: 'Ольга Р.', avatar: '👱‍♀️', stars: 5, text: 'Станция 14 — это шедевр. Нигде больше нет такого погружения в космос.', date: '28 мая' },
+  { name: 'Никита Е.', avatar: '👦', stars: 5, text: 'Подсадил всю семью! Теперь вместе смотрим и играем каждый вечер.', date: '24 мая' },
 ];
 
-const avatarColor = (name: string) =>
-  AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
-
-const initials = (name: string) =>
-  name.split(' ').map((w) => w[0]).slice(0, 2).join('');
+const stats = [
+  { value: '14', label: 'Сезонов', icon: '🛸' },
+  { value: '2.4M', label: 'Игроков', icon: '👾' },
+  { value: '312', label: 'Миссий', icon: '🚀' },
+  { value: '99%', label: 'Довольных', icon: '⭐' },
+];
 
 const Index = () => {
-  const [activeNav, setActiveNav] = useState('chats');
-  const [chatList, setChatList] = useState<Chat[]>(chats);
-  const [activeChatId, setActiveChatId] = useState<number>(chats[0].id);
-  const [filter, setFilter] = useState<'all' | 'direct' | 'group'>('all');
-  const [search, setSearch] = useState('');
-  const [draft, setDraft] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const activeChat = chatList.find((c) => c.id === activeChatId) || chatList[0];
+  const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+  const [sent, setSent] = useState(false);
+  const [activeGame, setActiveGame] = useState(0);
+  const [scrollY, setScrollY] = useState(0);
+  const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeChat.messages]);
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
-  const nowTime = () =>
-    new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-
-  const sendMessage = () => {
-    const text = draft.trim();
-    if (!text) return;
-    const time = nowTime();
-    setChatList((prev) =>
-      prev.map((c) =>
-        c.id === activeChatId
-          ? { ...c, last: text, time, messages: [...c.messages, { id: Date.now(), fromMe: true, author: 'Вы', text, time }] }
-          : c,
-      ),
-    );
-    setDraft('');
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSent(true);
+    setFormData({ name: '', email: '', message: '' });
   };
 
-  const visibleChats = chatList
-    .filter((c) => (activeNav === 'archive' ? c.archived : !c.archived))
-    .filter((c) => (filter === 'all' ? true : c.type === filter))
-    .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
-
   return (
-    <div className="flex h-screen text-foreground font-sans overflow-hidden" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-[#030712] text-white overflow-x-hidden" style={{ fontFamily: "'Exo 2', sans-serif" }}>
 
-      {/* Боковая иконочная навигация */}
-      <aside className="w-[60px] bg-[#202c33] flex flex-col items-center py-4 gap-1 shrink-0">
-        <div className="w-9 h-9 rounded-full bg-[#00a884] flex items-center justify-center mb-5">
-          <Icon name="MessageCircle" size={20} className="text-white" />
-        </div>
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveNav(item.id)}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-              activeNav === item.id ? 'text-[#00a884]' : 'text-[#8696a0] hover:text-[#d1d7db]'
-            }`}
-            title={item.label}
-          >
-            <Icon name={item.icon} size={22} />
-          </button>
+      {/* Звёзды */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        {STARS.map((s) => (
+          <div
+            key={s.id}
+            className="absolute rounded-full bg-white"
+            style={{
+              left: `${s.x}%`,
+              top: `${s.y}%`,
+              width: s.size,
+              height: s.size,
+              opacity: 0.6,
+              animation: `twinkle ${s.duration}s ${s.delay}s ease-in-out infinite alternate`,
+            }}
+          />
         ))}
-        <div className="mt-auto">
-          <div className="w-9 h-9 rounded-full bg-[#00a884] flex items-center justify-center text-white text-xs font-bold">
-            ВЫ
+      </div>
+
+      <style>{`
+        @keyframes twinkle { from { opacity: 0.15; } to { opacity: 0.9; } }
+        @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-18px); } }
+        @keyframes glow-pulse { 0%,100% { box-shadow: 0 0 20px #a78bfa44; } 50% { box-shadow: 0 0 50px #a78bfa99, 0 0 80px #a78bfa33; } }
+        @keyframes slide-up { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+        .float { animation: float 4s ease-in-out infinite; }
+        .glow-purple { animation: glow-pulse 2.5s ease-in-out infinite; }
+        .su1 { animation: slide-up 0.7s 0.1s ease-out forwards; opacity: 0; }
+        .su2 { animation: slide-up 0.7s 0.25s ease-out forwards; opacity: 0; }
+        .su3 { animation: slide-up 0.7s 0.4s ease-out forwards; opacity: 0; }
+        .su4 { animation: slide-up 0.7s 0.55s ease-out forwards; opacity: 0; }
+        .su5 { animation: slide-up 0.7s 0.65s ease-out forwards; opacity: 0; }
+        .card-hover { transition: transform 0.3s, box-shadow 0.3s; }
+        .card-hover:hover { transform: translateY(-6px); box-shadow: 0 20px 60px rgba(167,139,250,0.2); }
+      `}</style>
+
+      {/* НАВИГАЦИЯ */}
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between"
+        style={{
+          background: scrollY > 60 ? 'rgba(3,7,18,0.95)' : 'transparent',
+          backdropFilter: scrollY > 60 ? 'blur(12px)' : 'none',
+          transition: 'all 0.3s',
+          borderBottom: scrollY > 60 ? '1px solid rgba(167,139,250,0.15)' : 'none',
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🛸</span>
+          <span className="font-orbitron font-bold text-sm text-[#a78bfa] tracking-widest uppercase">Станция 14</span>
+        </div>
+        <div className="hidden md:flex items-center gap-6 text-sm text-gray-400">
+          {[['#экипаж', 'Экипаж'], ['#игры', 'Игры'], ['#отзывы', 'Отзывы'], ['#контакт', 'Контакт']].map(([href, label]) => (
+            <a key={href} href={href} className="hover:text-[#a78bfa] transition-colors">{label}</a>
+          ))}
+        </div>
+        <button className="px-5 py-2 rounded-full text-sm font-semibold text-white border border-[#a78bfa] hover:bg-[#a78bfa] transition-colors">
+          Играть
+        </button>
+      </nav>
+
+      {/* HERO */}
+      <section ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-16 z-10">
+        <div className="relative mb-6">
+          <div className="float text-[110px] leading-none select-none" style={{ filter: 'drop-shadow(0 0 40px #a78bfa88)' }}>🛸</div>
+        </div>
+
+        <p className="su1 font-orbitron text-[#a78bfa] text-xs tracking-[0.4em] uppercase mb-4">Сезон 14 · В прямом эфире</p>
+        <h1
+          className="su2 font-orbitron font-black text-4xl md:text-6xl lg:text-7xl leading-tight mb-6"
+          style={{ background: 'linear-gradient(135deg, #fff 30%, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+        >
+          Мистер Самир<br />играет в<br />
+          <span style={{ background: 'linear-gradient(90deg, #a78bfa, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            Космическую Станцию
+          </span>
+        </h1>
+        <p className="su3 text-gray-400 text-lg max-w-xl mb-10">
+          Погрузись в галактические приключения, командуй экипажем и захвати все 14 секторов вселенной!
+        </p>
+        <div className="su4 flex flex-wrap gap-4 justify-center">
+          <button className="glow-purple px-8 py-4 rounded-full font-bold text-white text-base" style={{ background: 'linear-gradient(135deg, #7c3aed, #a78bfa)' }}>
+            🚀 Начать миссию
+          </button>
+          <button className="px-8 py-4 rounded-full font-bold text-[#a78bfa] text-base border border-[#a78bfa]/40 hover:border-[#a78bfa] hover:bg-[#a78bfa]/10 transition-all">
+            ▶ Смотреть трейлер
+          </button>
+        </div>
+
+        <div className="su5 grid grid-cols-2 md:grid-cols-4 gap-4 mt-20 w-full max-w-3xl">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-2xl p-5 text-center" style={{ background: 'rgba(167,139,250,0.07)', border: '1px solid rgba(167,139,250,0.15)' }}>
+              <div className="text-3xl mb-1">{s.icon}</div>
+              <div className="font-orbitron font-bold text-2xl text-white">{s.value}</div>
+              <div className="text-xs text-gray-500 mt-1">{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-gray-600 animate-bounce">
+          <Icon name="ChevronDown" size={22} />
+        </div>
+      </section>
+
+      {/* ЭКИПАЖ */}
+      <section id="экипаж" className="relative z-10 py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="font-orbitron text-[#a78bfa] text-xs tracking-widest uppercase mb-3">Знакомьтесь</p>
+            <h2 className="font-orbitron font-bold text-3xl md:text-5xl text-white">Экипаж Станции</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {crew.map((member, i) => (
+              <div key={i} className="card-hover rounded-2xl p-6 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${member.color}33` }}>
+                <div className="text-6xl mb-4 float" style={{ animationDelay: `${i * 0.5}s`, filter: `drop-shadow(0 0 20px ${member.color}66)` }}>
+                  {member.emoji}
+                </div>
+                <h3 className="font-orbitron font-bold text-sm text-white mb-1">{member.name}</h3>
+                <p className="text-xs font-semibold mb-3" style={{ color: member.color }}>{member.rank}</p>
+                <p className="text-gray-500 text-sm leading-relaxed">{member.bio}</p>
+              </div>
+            ))}
           </div>
         </div>
-      </aside>
+      </section>
 
-      {/* Список чатов */}
-      <section className="w-[360px] flex flex-col shrink-0" style={{ background: '#111b21' }}>
-        {/* Шапка */}
-        <header className="px-4 pt-4 pb-2" style={{ background: '#202c33' }}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[#e9edef] font-semibold text-base">
-              {navItems.find((n) => n.id === activeNav)?.label}
-            </span>
-            <div className="flex gap-1">
-              <button className="w-8 h-8 rounded-full flex items-center justify-center text-[#8696a0] hover:text-[#d1d7db] hover:bg-white/10 transition-colors">
-                <Icon name="Plus" size={20} />
-              </button>
-              <button className="w-8 h-8 rounded-full flex items-center justify-center text-[#8696a0] hover:text-[#d1d7db] hover:bg-white/10 transition-colors">
-                <Icon name="MoreVertical" size={20} />
+      {/* ИГРЫ */}
+      <section id="игры" className="relative z-10 py-24 px-6" style={{ background: 'linear-gradient(180deg, transparent, rgba(167,139,250,0.04), transparent)' }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="font-orbitron text-[#a78bfa] text-xs tracking-widest uppercase mb-3">Игровой центр</p>
+            <h2 className="font-orbitron font-bold text-3xl md:text-5xl text-white">Миссии и игры</h2>
+          </div>
+
+          <div className="rounded-3xl p-8 mb-6 relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${games[activeGame].color}44` }}>
+            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: `radial-gradient(circle at 80% 50%, ${games[activeGame].color}, transparent 60%)` }} />
+            <div className="relative flex flex-col md:flex-row items-center gap-8">
+              <div className="text-8xl float">{games[activeGame].icon}</div>
+              <div className="flex-1 text-center md:text-left">
+                <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: games[activeGame].color }}>{games[activeGame].genre}</p>
+                <h3 className="font-orbitron font-bold text-3xl text-white mb-3">{games[activeGame].title}</h3>
+                <p className="text-gray-400 mb-5">{games[activeGame].desc}</p>
+                <div className="flex items-center gap-6 justify-center md:justify-start text-sm text-gray-500">
+                  <span>⭐ {games[activeGame].rating}</span>
+                  <span>👥 {games[activeGame].players} игроков</span>
+                </div>
+              </div>
+              <button className="px-8 py-3 rounded-full font-bold text-white shrink-0 hover:opacity-90 transition-opacity" style={{ background: games[activeGame].color }}>
+                Играть →
               </button>
             </div>
           </div>
-          {/* Поиск */}
-          <div className="relative mb-3">
-            <Icon name="Search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8696a0]" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск или новый чат"
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg text-[#d1d7db] placeholder-[#8696a0] outline-none"
-              style={{ background: '#2a3942' }}
-            />
-          </div>
-          {/* Фильтры */}
-          <div className="flex gap-1">
-            {([['all', 'Все'], ['direct', 'Личные'], ['group', 'Группы']] as const).map(([key, label]) => (
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {games.map((game, i) => (
               <button
-                key={key}
-                onClick={() => setFilter(key)}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                  filter === key
-                    ? 'bg-[#00a884] text-white'
-                    : 'text-[#8696a0] hover:bg-white/10'
-                }`}
+                key={i}
+                onClick={() => setActiveGame(i)}
+                className="rounded-xl p-4 text-left transition-all hover:scale-105"
+                style={{
+                  background: activeGame === i ? `${game.color}22` : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${activeGame === i ? game.color : 'rgba(255,255,255,0.08)'}`,
+                }}
               >
-                {label}
+                <div className="text-2xl mb-2">{game.icon}</div>
+                <div className="text-sm font-semibold text-white">{game.title}</div>
+                <div className="text-xs text-gray-500 mt-1">{game.genre}</div>
               </button>
             ))}
           </div>
-        </header>
+        </div>
+      </section>
 
-        {/* Чаты */}
-        <div className="flex-1 overflow-y-auto">
-          {visibleChats.map((chat) => (
-            <button
-              key={chat.id}
-              onClick={() => setActiveChatId(chat.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-white/5 ${
-                activeChatId === chat.id ? 'bg-[#2a3942]' : 'hover:bg-[#202c33]'
-              }`}
-            >
-              <div className="relative shrink-0">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-semibold ${avatarColor(chat.name)}`}>
-                  {chat.type === 'group' ? <Icon name="Users" size={20} /> : initials(chat.name)}
+      {/* ОТЗЫВЫ */}
+      <section id="отзывы" className="relative z-10 py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="font-orbitron text-[#a78bfa] text-xs tracking-widest uppercase mb-3">Галактическое сообщество</p>
+            <h2 className="font-orbitron font-bold text-3xl md:text-5xl text-white">Отзывы игроков</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {reviews.map((r, i) => (
+              <div key={i} className="card-hover rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(167,139,250,0.12)' }}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl" style={{ background: 'rgba(167,139,250,0.12)' }}>
+                    {r.avatar}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-sm text-white">{r.name}</div>
+                    <div className="text-xs text-gray-600">{r.date}</div>
+                  </div>
                 </div>
-                {chat.online && (
-                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#00a884] border-2 border-[#111b21]" />
-                )}
+                <div className="text-[#f59e0b] text-sm mb-3">{'★'.repeat(r.stars)}{'☆'.repeat(5 - r.stars)}</div>
+                <p className="text-gray-400 text-sm leading-relaxed">"{r.text}"</p>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[#e9edef] font-medium text-sm truncate">{chat.name}</span>
-                  <span className={`text-[11px] shrink-0 ${chat.unread > 0 ? 'text-[#00a884]' : 'text-[#8696a0]'}`}>{chat.time}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ОБРАТНАЯ СВЯЗЬ */}
+      <section id="контакт" className="relative z-10 py-24 px-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="font-orbitron text-[#a78bfa] text-xs tracking-widest uppercase mb-3">Связаться с нами</p>
+            <h2 className="font-orbitron font-bold text-3xl md:text-5xl text-white">Обратная связь</h2>
+            <p className="text-gray-500 mt-4">Есть идеи? Нашли баг? Хотите в экипаж? Пишите!</p>
+          </div>
+
+          {sent ? (
+            <div className="rounded-3xl p-12 text-center" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.3)' }}>
+              <div className="text-6xl mb-4">🚀</div>
+              <h3 className="font-orbitron font-bold text-xl text-[#34d399] mb-2">Сообщение отправлено!</h3>
+              <p className="text-gray-500">Командир Самир ответит вам из открытого космоса в ближайшее время.</p>
+              <button onClick={() => setSent(false)} className="mt-6 px-6 py-2 rounded-full text-sm font-semibold text-[#a78bfa] border border-[#a78bfa]/40 hover:bg-[#a78bfa]/10 transition-colors">
+                Написать ещё
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSend} className="rounded-3xl p-8 space-y-5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(167,139,250,0.15)' }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Имя</label>
+                  <input
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Ваш позывной"
+                    className="w-full px-4 py-3 rounded-xl text-white placeholder-gray-600 outline-none transition-all"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  />
                 </div>
-                <div className="flex items-center justify-between gap-2 mt-0.5">
-                  <span className="text-xs text-[#8696a0] truncate">{chat.last}</span>
-                  {chat.unread > 0 && (
-                    <span className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-[#00a884] text-white text-[11px] font-semibold flex items-center justify-center">
-                      {chat.unread}
-                    </span>
-                  )}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Email</label>
+                  <input
+                    required
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="email@galaxy.com"
+                    className="w-full px-4 py-3 rounded-xl text-white placeholder-gray-600 outline-none transition-all"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  />
                 </div>
               </div>
-            </button>
-          ))}
-          {visibleChats.length === 0 && (
-            <div className="p-8 text-center text-sm text-[#8696a0]">Ничего не найдено</div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Сообщение</label>
+                <textarea
+                  required
+                  rows={5}
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  placeholder="Ваш сигнал из глубин космоса..."
+                  className="w-full px-4 py-3 rounded-xl text-white placeholder-gray-600 outline-none resize-none transition-all"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-4 rounded-xl font-bold text-white text-base hover:opacity-90 transition-opacity"
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #a78bfa)' }}
+              >
+                📡 Отправить сигнал
+              </button>
+            </form>
           )}
         </div>
       </section>
 
-      {/* Область переписки */}
-      <main className="flex-1 flex flex-col min-w-0">
-        {/* Шапка чата */}
-        <header className="h-[60px] px-4 flex items-center justify-between shrink-0" style={{ background: '#202c33' }}>
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0 ${avatarColor(activeChat.name)}`}>
-              {activeChat.type === 'group' ? <Icon name="Users" size={18} /> : initials(activeChat.name)}
-            </div>
-            <div>
-              <div className="text-[#e9edef] font-medium text-sm">{activeChat.name}</div>
-              <div className="text-[11px] text-[#8696a0]">
-                {activeChat.type === 'group'
-                  ? `${activeChat.members} участников`
-                  : activeChat.online ? 'В сети' : activeChat.role}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            {['Search', 'Phone', 'MoreVertical'].map((ic) => (
-              <button key={ic} className="w-9 h-9 rounded-full flex items-center justify-center text-[#8696a0] hover:text-[#d1d7db] hover:bg-white/10 transition-colors">
-                <Icon name={ic} size={20} />
-              </button>
-            ))}
-          </div>
-        </header>
-
-        {/* Сообщения — паттерн фона как у WhatsApp */}
-        <div
-          className="flex-1 overflow-y-auto px-6 py-4 space-y-1"
-          style={{
-            background: '#0b141a',
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23182229' fill-opacity='0.8'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        >
-          {/* Метка шифрования */}
-          <div className="flex justify-center mb-4">
-            <div className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] text-[#8696a0]" style={{ background: '#182229' }}>
-              <Icon name="Lock" size={12} className="text-[#8696a0]" />
-              Сообщения защищены сквозным шифрованием
-            </div>
-          </div>
-
-          {activeChat.messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-              <div
-                className={`relative max-w-[65%] px-3 pt-2 pb-1.5 rounded-lg text-sm leading-relaxed shadow-sm`}
-                style={{
-                  background: msg.fromMe ? '#005c4b' : '#202c33',
-                  borderRadius: msg.fromMe ? '8px 8px 2px 8px' : '8px 8px 8px 2px',
-                }}
-              >
-                {activeChat.type === 'group' && !msg.fromMe && (
-                  <div className="text-[12px] font-semibold mb-1" style={{ color: '#00a884' }}>{msg.author}</div>
-                )}
-                <span className="text-[#e9edef]">{msg.text}</span>
-                <div className="flex items-center justify-end gap-1 mt-1">
-                  <span className="text-[10px] text-[#8696a0]">{msg.time}</span>
-                  {msg.fromMe && <Icon name="CheckCheck" size={14} className="text-[#53bdeb]" />}
-                </div>
-              </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Поле ввода */}
-        <footer className="px-4 py-3 flex items-center gap-3 shrink-0" style={{ background: '#202c33' }}>
-          <button className="text-[#8696a0] hover:text-[#d1d7db] transition-colors">
-            <Icon name="Smile" size={24} />
-          </button>
-          <button className="text-[#8696a0] hover:text-[#d1d7db] transition-colors">
-            <Icon name="Paperclip" size={24} />
-          </button>
-          <div className="flex-1 relative">
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-              }}
-              placeholder="Введите сообщение"
-              className="w-full px-4 py-2.5 rounded-lg text-sm text-[#e9edef] placeholder-[#8696a0] outline-none"
-              style={{ background: '#2a3942' }}
-            />
-          </div>
-          <button
-            onClick={sendMessage}
-            className="w-11 h-11 rounded-full flex items-center justify-center transition-colors shrink-0"
-            style={{ background: draft.trim() ? '#00a884' : '#2a3942' }}
-          >
-            <Icon name={draft.trim() ? 'Send' : 'Mic'} size={20} className="text-white" />
-          </button>
-        </footer>
-      </main>
+      {/* ФУТЕР */}
+      <footer className="relative z-10 py-10 px-6 text-center" style={{ borderTop: '1px solid rgba(167,139,250,0.1)' }}>
+        <div className="text-3xl mb-3">🛸</div>
+        <p className="font-orbitron text-[#a78bfa] text-xs tracking-widest uppercase mb-2">Мистер Самир · Космическая Станция 14</p>
+        <p className="text-gray-700 text-xs">© 2024 · Все права защищены галактическим законом</p>
+      </footer>
     </div>
   );
 };
