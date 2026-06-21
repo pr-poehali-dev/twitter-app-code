@@ -110,11 +110,40 @@ const navItems = [
 
 const Index = () => {
   const [activeNav, setActiveNav] = useState('chats');
-  const [activeChat, setActiveChat] = useState<Chat>(chats[0]);
+  const [chatList, setChatList] = useState<Chat[]>(chats);
+  const [activeChatId, setActiveChatId] = useState<number>(chats[0].id);
   const [filter, setFilter] = useState<'all' | 'direct' | 'group'>('all');
   const [search, setSearch] = useState('');
+  const [draft, setDraft] = useState('');
 
-  const visibleChats = chats
+  const activeChat = chatList.find((c) => c.id === activeChatId) || chatList[0];
+
+  const nowTime = () =>
+    new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+  const sendMessage = () => {
+    const text = draft.trim();
+    if (!text) return;
+    const time = nowTime();
+    setChatList((prev) =>
+      prev.map((c) =>
+        c.id === activeChatId
+          ? {
+              ...c,
+              last: text,
+              time,
+              messages: [
+                ...c.messages,
+                { id: Date.now(), fromMe: true, author: 'Вы', text, time },
+              ],
+            }
+          : c,
+      ),
+    );
+    setDraft('');
+  };
+
+  const visibleChats = chatList
     .filter((c) => (activeNav === 'archive' ? c.archived : !c.archived))
     .filter((c) => (filter === 'all' ? true : c.type === filter))
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
@@ -199,7 +228,7 @@ const Index = () => {
           {visibleChats.map((chat) => (
             <button
               key={chat.id}
-              onClick={() => setActiveChat(chat)}
+              onClick={() => setActiveChatId(chat.id)}
               className={`w-full flex items-center gap-3 px-5 py-3.5 text-left border-b border-border/60 transition-colors ${
                 activeChat.id === chat.id ? 'bg-secondary' : 'hover:bg-secondary/50'
               }`}
@@ -315,13 +344,25 @@ const Index = () => {
               <Icon name="Paperclip" size={20} />
             </button>
             <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
               placeholder="Введите сообщение…"
               className="flex-1 bg-transparent outline-none text-sm py-1"
             />
             <button className="text-muted-foreground hover:text-foreground transition-colors">
               <Icon name="Smile" size={20} />
             </button>
-            <button className="w-9 h-9 rounded-lg bg-accent text-white flex items-center justify-center hover:opacity-90 transition-opacity">
+            <button
+              onClick={sendMessage}
+              disabled={!draft.trim()}
+              className="w-9 h-9 rounded-lg bg-accent text-white flex items-center justify-center hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               <Icon name="Send" size={18} />
             </button>
           </div>
